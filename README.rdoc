@@ -1,3 +1,5 @@
 = ActiveGoogle
 
+This project provides ActiveRessource like Access to the Google Data APIs.
+
 This project rocks and uses MIT-LICENSE.
