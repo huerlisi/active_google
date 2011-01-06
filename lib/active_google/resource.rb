@@ -48,8 +48,6 @@ end
 module ActiveGoogle
   class Resource < ActiveResource::Base
     self.site = "https://www.google.com/m8/feeds/contacts/default/"
-    self.user = ""
-    self.password = ""
 
     class << self
       def element_path(id, prefix_options = {}, query_options = nil)
