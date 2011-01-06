@@ -16,7 +16,6 @@ module ActiveResource
       def request(method, path, *arguments)
         authorize unless @connection
         
-        puts "#{site.scheme}://#{site.host}:#{site.port}#{path}"
         result = ActiveSupport::Notifications.instrument("request.active_resource") do |payload|
           payload[:method]      = method
           payload[:request_uri] = "#{site.scheme}://#{site.host}:#{site.port}#{path}"
