@@ -1,6 +1,8 @@
+require 'active_resource/base'
 require 'active_resource/connection'
 require 'gdata/http/response'
 
+# Monkey Patching GData::HTTP::Response to respond to .code.
 module GData
   module HTTP
     class Response
@@ -19,7 +21,15 @@ module ActiveResource
         result = ActiveSupport::Notifications.instrument("request.active_resource") do |payload|
           payload[:method]      = method
           payload[:request_uri] = "#{site.scheme}://#{site.host}:#{site.port}#{path}"
-          payload[:result]      = @connection.send(method, "#{site.scheme}://#{site.host}:#{site.port}#{path}")
+          case method
+          when :put, :post
+            payload[:body]        = arguments[0]
+            puts "URL: #{site.scheme}://#{site.host}:#{site.port}#{path}"
+            puts arguments[0]
+            payload[:result]      = @connection.send(method, "#{site.scheme}://#{site.host}:#{site.port}#{path}", arguments[0])
+          else
+            payload[:result]      = @connection.send(method, "#{site.scheme}://#{site.host}:#{site.port}#{path}")
+          end
         end
         handle_response(result)
       rescue Timeout::Error => e
@@ -43,6 +53,15 @@ module ActiveResource
         retry
       end
   end
+  
+  class Base
+    private
+      # Only needed for json to not bail out on namespaced elements
+      alias orig_find_or_create_resource_for find_or_create_resource_for
+      def find_or_create_resource_for(name)
+        orig_find_or_create_resource_for(name.to_s.gsub('$', '_'))
+      end
+  end
 end
 
 module ActiveGoogle
@@ -51,6 +70,7 @@ module ActiveGoogle
 
     class << self
       def element_path(id, prefix_options = {}, query_options = nil)
+        query_options = {}.merge(query_options)
         prefix_options, query_options = split_options(prefix_options) if query_options.nil?
         "#{prefix(prefix_options)}base/#{URI.escape id.to_s}#{query_string(query_options)}"
       end
@@ -59,6 +79,10 @@ module ActiveGoogle
         prefix_options, query_options = split_options(prefix_options) if query_options.nil?
         "#{prefix(prefix_options)}full#{query_string(query_options)}"
       end
+    end
+    
+    def id
+      attributes[:id].gsub(%r%.*/base/%, '')
     end
   end
 end
